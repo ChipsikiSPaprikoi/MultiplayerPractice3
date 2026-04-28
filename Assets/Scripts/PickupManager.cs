@@ -1,8 +1,9 @@
-using Unity.Netcode;
+using FishNet.Managing;
+using FishNet.Object;
 using UnityEngine;
 using System.Collections;
 
-public class PickupManager : MonoBehaviour
+public class PickupManager : NetworkBehaviour
 {
     [SerializeField] private GameObject _healthPickupPrefab;
     [SerializeField] private Transform[] _spawnPoints;
@@ -10,18 +11,12 @@ public class PickupManager : MonoBehaviour
 
     private bool _initialized = false;
 
-    private void Update()
+    public override void OnStartServer()
     {
-        if (_initialized) return;
-        
-        if (NetworkManager.Singleton == null) return;
-        
-        if (NetworkManager.Singleton.IsServer)
-        {
-            _initialized = true;
-            SpawnAll();
-            Debug.Log("PickupManager initialized & spawned!");
-        }
+        base.OnStartServer();
+        _initialized = true;
+        SpawnAll();
+        Debug.Log("PickupManager initialized & spawned!");
     }
 
     private void SpawnAll()
@@ -48,8 +43,7 @@ public class PickupManager : MonoBehaviour
         var go = Instantiate(_healthPickupPrefab, position, Quaternion.identity);
         var pickup = go.GetComponent<HealthPickup>();
         if (pickup != null) pickup.Init(this);
-        var netObj = go.GetComponent<NetworkObject>();
-        if (netObj != null) netObj.Spawn();
+        ServerManager.Spawn(go);
         Debug.Log($"Аптечка заспавнена: {position}");
     }
 }

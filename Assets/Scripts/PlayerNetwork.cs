@@ -1,29 +1,16 @@
-using Unity.Collections;
-using Unity.Netcode;
+using FishNet.Object;
+using FishNet.Object.Synchronizing;
 using UnityEngine;
 using System.Collections;
+using FishNet.CodeGenerating;
 
 public class PlayerNetwork : NetworkBehaviour
 {
     [Header("Сетевые статы")]
-    public NetworkVariable<FixedString32Bytes> Nickname = new(
-        default,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
+    [AllowMutableSyncType] public SyncVar<string> Nickname = new SyncVar<string>("Player");
+    [AllowMutableSyncType] public SyncVar<int> HP = new SyncVar<int>(100);
+    [AllowMutableSyncType] public SyncVar<bool> IsAlive = new SyncVar<bool>(true);
 
-    public NetworkVariable<int> HP = new(
-        100,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
-    
-    public NetworkVariable<bool> IsAlive = new(
-        true,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
-    
     [Header("Респавн (координаты для префаба)")]
     [SerializeField] private Vector3[] _spawnPositions = new Vector3[]
     {
@@ -35,34 +22,26 @@ public class PlayerNetwork : NetworkBehaviour
 
     private const float PlayerSpacing = 3f;
 
-    public override void OnNetworkSpawn()
+    public override void OnStartNetwork()
     {
-        base.OnNetworkSpawn();
-        Debug.Log($"{name}: IsLocalPlayer={IsLocalPlayer} | IsOwner={IsOwner} | ClientId={OwnerClientId}");
+        Debug.Log($"{name}: Network spawned");
         
-        if (IsLocalPlayer)
+        if (base.Owner != null && base.Owner.IsLocalClient)
         {
             SetNicknameServerRpc(ConnectionUI.PlayerNickname);
         }
-        
-        Nickname.OnValueChanged += OnNicknameChanged;
-        HP.OnValueChanged += OnHPChanged;
-        IsAlive.OnValueChanged += OnIsAliveChanged;
     }
 
-    public override void OnNetworkDespawn()
+    public override void OnStopNetwork()
     {
-        Nickname.OnValueChanged -= OnNicknameChanged;
-        HP.OnValueChanged -= OnHPChanged;
-        IsAlive.OnValueChanged -= OnIsAliveChanged;
-        base.OnNetworkDespawn();
+        base.OnStopNetwork();
     }
 
     private void OnHPChanged(int previous, int current)
     {
         Debug.Log($"HP изменен: {previous} -> {current}");
         
-        if (!IsServer) return;
+        if (!base.IsServerInitialized) return;
         if (current <= 0 && IsAlive.Value)
         {
             IsAlive.Value = false;
@@ -84,7 +63,7 @@ public class PlayerNetwork : NetworkBehaviour
         }
         else
         {
-            respawnPos = new Vector3(OwnerClientId * PlayerSpacing, 1f, 0f);
+            respawnPos = new Vector3(base.Owner.ClientId * PlayerSpacing, 1f, 0f);
             Debug.LogWarning("Нет spawnPositions! Fallback по ClientId.");
         }
 
@@ -104,30 +83,26 @@ public class PlayerNetwork : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     private void SetNicknameServerRpc(string nickname)
     {
-        if (Nickname.Value.IsEmpty)
+        if (string.IsNullOrEmpty(Nickname.Value))
         {
             Vector3 startPos = _spawnPositions.Length > 0 
-                ? _spawnPositions[(int)OwnerClientId % _spawnPositions.Length] 
-                : new Vector3(OwnerClientId * PlayerSpacing, 1f, 0f);
+                ? _spawnPositions[(int)(base.Owner?.ClientId ?? 0) % _spawnPositions.Length] 
+                : new Vector3((base.Owner?.ClientId ?? 0) * PlayerSpacing, 1f, 0f);
             transform.position = startPos;
         }
         
         string safeNickname = string.IsNullOrWhiteSpace(nickname) 
-            ? $"Player_{OwnerClientId}" 
+            ? $"Player_{base.Owner?.ClientId ?? 0}" 
             : nickname.Trim().Substring(0, Mathf.Min(30, nickname.Length));
         
-        Nickname.Value = new FixedString32Bytes(safeNickname);
+        Nickname.Value = safeNickname;
     }
 
-    private void OnNicknameChanged(FixedString32Bytes previous, FixedString32Bytes current)
-    {
-        Debug.Log($"Ник изменен: {previous.ToString()} -> {current.ToString()}");
-    }
-    
     [ServerRpc(RequireOwnership = false)]
     public void TakeDamageServerRpc(int damage)
     {
         if (!IsAlive.Value) return;
         HP.Value = Mathf.Max(0, HP.Value - damage);
+        Debug.Log($"{Nickname.Value} получил {damage} урона, HP = {HP.Value}");
     }
 }

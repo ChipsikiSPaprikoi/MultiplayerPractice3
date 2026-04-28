@@ -1,7 +1,6 @@
+using FishNet.Object;
 using TMPro;
-using Unity.Netcode;
 using UnityEngine;
-using Unity.Collections;
 
 public class PlayerView : NetworkBehaviour
 {
@@ -12,49 +11,35 @@ public class PlayerView : NetworkBehaviour
     [SerializeField] private TMP_Text _hpText;
     [SerializeField] private TMP_Text _ammoText;
 
-    public override void OnNetworkSpawn()
+    public override void OnStartNetwork()
     {
         if (_playerNetwork == null)
             _playerNetwork = GetComponent<PlayerNetwork>();
         if (_playerShooting == null)
             _playerShooting = GetComponent<PlayerShooting>();
         
-        _playerNetwork.Nickname.OnValueChanged += OnNicknameChanged;
-        _playerNetwork.HP.OnValueChanged += OnHpChanged;
-        if (_playerShooting != null)
-            _playerShooting.CurrentAmmo.OnValueChanged += OnAmmoChanged;
-        
-        OnNicknameChanged(default, _playerNetwork.Nickname.Value);
-        OnHpChanged(0, _playerNetwork.HP.Value);
-        OnAmmoChanged(0, _playerShooting?.CurrentAmmo.Value ?? 10);
+        UpdateAllUI();
     }
 
-    public override void OnNetworkDespawn()
+    public override void OnStopNetwork()
     {
-        if (_playerNetwork != null)
-        {
-            _playerNetwork.Nickname.OnValueChanged -= OnNicknameChanged;
-            _playerNetwork.HP.OnValueChanged -= OnHpChanged;
-        }
-        if (_playerShooting != null)
-            _playerShooting.CurrentAmmo.OnValueChanged -= OnAmmoChanged;
+        base.OnStopNetwork();
     }
 
-    private void OnNicknameChanged(FixedString32Bytes oldValue, FixedString32Bytes newValue)
+    private void UpdateAllUI()
     {
         if (_nicknameText != null)
-            _nicknameText.text = newValue.ToString();
-    }
-
-    private void OnHpChanged(int oldValue, int newValue)
-    {
+            _nicknameText.text = _playerNetwork.Nickname.Value.ToString();
+    
         if (_hpText != null)
-            _hpText.text = $"HP: {newValue}";
+            _hpText.text = $"HP: {_playerNetwork.HP.Value}";
+    
+        if (_ammoText != null && _playerShooting != null)
+            _ammoText.text = $"Ammo: {_playerShooting.CurrentAmmo.Value}/{_playerShooting._maxAmmo}";
     }
 
-    private void OnAmmoChanged(int oldValue, int newValue)
+    private void Update()
     {
-        if (_ammoText != null)
-            _ammoText.text = $"Ammo: {newValue}/{_playerShooting?._maxAmmo ?? 10}";
+        UpdateAllUI();
     }
 }

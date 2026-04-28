@@ -1,4 +1,4 @@
-using Unity.Netcode;
+using FishNet.Object;
 using UnityEngine;
 
 public class Projectile : NetworkBehaviour
@@ -8,41 +8,42 @@ public class Projectile : NetworkBehaviour
 
     private float _spawnTime;
 
-    public override void OnNetworkSpawn()
+    public override void OnStartNetwork()
     {
         _spawnTime = Time.time;
-        Debug.Log($"[Projectile] Spawned by Owner={OwnerClientId}");
+        Debug.Log("[Projectile] Spawned");
     }
 
     private void Update()
     {
-        if (!IsSpawned) return;
+        if (!base.IsSpawned) return;
         
         float age = Time.time - _spawnTime;
         if (age > _lifetime)
         {
-            NetworkObject.Despawn(destroy: true);
+            ServerManager.Despawn(gameObject);
         }
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!IsServer || !IsSpawned) return;
+        if (!base.IsServerInitialized || !base.IsSpawned) return;
         
         if (other.CompareTag("Wall") || other.CompareTag("Ground"))
         {
-            NetworkObject.Despawn(destroy: true);
+            ServerManager.Despawn(gameObject);
             return;
         }
 
         var target = other.GetComponent<PlayerNetwork>();
         if (target == null) return;
         
-        if (target.OwnerClientId == OwnerClientId) return;
+        if (Vector3.Distance(transform.position, target.transform.position) < 2f) return;
 
         int newHp = Mathf.Max(0, target.HP.Value - _damage);
         target.HP.Value = newHp;
+        target.TakeDamageServerRpc(_damage);
 
-        NetworkObject.Despawn(destroy: true);
+        ServerManager.Despawn(gameObject);
     }
 }

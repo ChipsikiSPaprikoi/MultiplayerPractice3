@@ -1,5 +1,5 @@
 using TMPro;
-using Unity.Netcode;
+using FishNet.Managing;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,6 +9,7 @@ public class ConnectionUI : MonoBehaviour
     [SerializeField] private Button _hostButton;
     [SerializeField] private Button _clientButton;
     [SerializeField] private GameObject _uiPanel;
+    [SerializeField] private NetworkManager _networkManager;
 
     public static string PlayerNickname { get; private set; } = "Player";
 
@@ -24,15 +25,21 @@ public class ConnectionUI : MonoBehaviour
     public void StartAsHost()
     {
         SaveNickname();
-        NetworkManager.Singleton.StartHost();
+        StartServer();
+        _networkManager.ClientManager.StartConnection();
         HideUI();
     }
 
     public void StartAsClient()
     {
         SaveNickname();
-        NetworkManager.Singleton.StartClient();
+        _networkManager.ClientManager.StartConnection();
         HideUI();
+    }
+
+    private void StartServer()
+    {
+        _networkManager.ServerManager.StartConnection();
     }
 
     private void SaveNickname()

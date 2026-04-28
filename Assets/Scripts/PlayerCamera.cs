@@ -1,4 +1,5 @@
-using Unity.Netcode;
+using FishNet.Object;
+using FishNet.Connection;
 using UnityEngine;
 
 public class PlayerCamera : NetworkBehaviour
@@ -7,22 +8,19 @@ public class PlayerCamera : NetworkBehaviour
 
     private Camera _cam;
 
-    public override void OnNetworkSpawn()
+    private void Start()
     {
-        if (!IsOwner)
+        if (base.Owner != null && base.Owner.IsLocalClient)
         {
-            enabled = false;
-            return;
+            _cam = Camera.main;
+            Debug.Log($"{gameObject.name}: Camera enabled for owner");
         }
-        
-        _cam = Camera.main;
-        Debug.Log($"{gameObject.name}: Camera enabled for owner {OwnerClientId}");
     }
 
     private void LateUpdate()
     {
-        if (_cam == null) return;
-        
+        if (_cam == null || base.Owner == null || !base.Owner.IsLocalClient) return;
+    
         _cam.transform.position = transform.position + _offset;
         _cam.transform.LookAt(transform.position + Vector3.up * 1.5f);
     }

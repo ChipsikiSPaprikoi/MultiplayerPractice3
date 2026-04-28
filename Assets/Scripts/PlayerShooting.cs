@@ -1,5 +1,9 @@
-using Unity.Netcode;
+using FishNet.Object;
+using FishNet.Object.Synchronizing;
+using FishNet.Connection;
+using FishNet.Managing;
 using UnityEngine;
+using FishNet.CodeGenerating;
 
 public class PlayerShooting : NetworkBehaviour
 {
@@ -8,44 +12,34 @@ public class PlayerShooting : NetworkBehaviour
     [SerializeField] private float _cooldown = 0.4f;
     [SerializeField] public int _maxAmmo = 10;
 
-    private float _lastShotTime;
-    public NetworkVariable<int> CurrentAmmo = new(10,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server);
+    [AllowMutableSyncType] public SyncVar<int> CurrentAmmo = new SyncVar<int>(10);
 
+    private float _lastShotTime;
     private PlayerNetwork _playerNetwork;
 
-    public override void OnNetworkSpawn()
+    public override void OnStartNetwork()
     {
         _playerNetwork = GetComponent<PlayerNetwork>();
-        _playerNetwork.IsAlive.OnValueChanged += OnIsAliveChanged;
         
-        if (IsServer)
+        if (base.IsServerInitialized)
             CurrentAmmo.Value = _maxAmmo;
     }
 
-    public override void OnNetworkDespawn()
+    public override void OnStopNetwork()
     {
-        if (_playerNetwork != null)
-            _playerNetwork.IsAlive.OnValueChanged -= OnIsAliveChanged;
-    }
-
-    private void OnIsAliveChanged(bool prev, bool next)
-    {
-        if (next && IsServer)
-            CurrentAmmo.Value = _maxAmmo;
+        base.OnStopNetwork();
     }
 
     private void Update()
     {
-        if (!IsLocalPlayer || !_playerNetwork.IsAlive.Value) return;
-        
+        if (!base.Owner.IsLocalClient || !_playerNetwork.IsAlive.Value) return;
+    
         if (Input.GetKeyDown(KeyCode.Space))
             ShootServerRpc(_firePoint.position, _firePoint.forward);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    private void ShootServerRpc(Vector3 pos, Vector3 dir, ServerRpcParams rpcParams = default)
+    private void ShootServerRpc(Vector3 pos, Vector3 dir, NetworkConnection senderConnection = null)
     {
         if (!_playerNetwork.IsAlive.Value || _playerNetwork.HP.Value <= 0) return;
         
@@ -57,8 +51,7 @@ public class PlayerShooting : NetworkBehaviour
         CurrentAmmo.Value--;
 
         var go = Instantiate(_projectilePrefab, pos + dir * 1.2f, Quaternion.LookRotation(dir));
-        var no = go.GetComponent<NetworkObject>();
-        no.SpawnWithOwnership(rpcParams.Receive.SenderClientId);
+        ServerManager.Spawn(go, senderConnection);
         
         var rb = go.GetComponent<Rigidbody>();
         if (rb != null)

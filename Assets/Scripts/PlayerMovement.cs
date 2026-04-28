@@ -1,6 +1,6 @@
-using Unity.Netcode;
+using FishNet.Object;
+using FishNet.Connection;
 using UnityEngine;
-using Unity.Netcode.Components;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : NetworkBehaviour
@@ -13,14 +13,9 @@ public class PlayerMovement : NetworkBehaviour
 
     private void Awake() => _cc = GetComponent<CharacterController>();
 
-    public override void OnNetworkSpawn()
-    {
-        Debug.Log($"{gameObject.name}: IsLocalPlayer={IsLocalPlayer} IsOwner={IsOwner} OwnerClientId={OwnerClientId}");
-    }
-
     private void Update()
     {
-        if (!IsLocalPlayer || !GetComponent<PlayerNetwork>().IsAlive.Value) return;
+        if (!base.Owner.IsLocalClient || !GetComponent<PlayerNetwork>().IsAlive.Value) return;
 
         float h = Input.GetAxis("Horizontal");
         float v = Input.GetAxis("Vertical");

@@ -1,4 +1,5 @@
-using Unity.Netcode;
+using FishNet.Object;
+using FishNet.Connection;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -10,7 +11,7 @@ public class PlayerCombat : NetworkBehaviour
     [SerializeField] private float _attackRange = 4f;
     [SerializeField] private KeyCode _attackKey = KeyCode.Mouse0;
 
-    public override void OnNetworkSpawn()
+    public override void OnStartNetwork()
     {
         if (_playerNetwork == null)
             _playerNetwork = GetComponent<PlayerNetwork>();
@@ -18,7 +19,7 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Update()
     {
-        if (!IsOwner || !_playerNetwork.IsAlive.Value) return;
+        if (!base.IsOwner || !_playerNetwork.IsAlive.Value) return;
         
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
@@ -28,12 +29,12 @@ public class PlayerCombat : NetworkBehaviour
 
     private void TryAttack()
     {
-        if (!IsOwner || _playerNetwork == null || !_playerNetwork.IsAlive.Value) return;
+        if (!base.IsOwner || _playerNetwork == null || !_playerNetwork.IsAlive.Value) return;
         
         PlayerNetwork target = GetNearestEnemy();
         if (target != null && target != _playerNetwork)
         {
-            DealDamageServerRpc(target.NetworkObjectId, _damage);
+            DealDamageServerRpc(target, _damage);
         }
     }
 
@@ -42,9 +43,10 @@ public class PlayerCombat : NetworkBehaviour
         PlayerNetwork nearest = null;
         float nearestDistance = _attackRange;
         
-        foreach (var kvp in NetworkManager.Singleton.SpawnManager.SpawnedObjects)
+        MonoBehaviour[] behaviours = FindObjectsOfType<MonoBehaviour>();
+        foreach (var behaviour in behaviours)
         {
-            if (kvp.Value.TryGetComponent<PlayerNetwork>(out var player))
+            if (behaviour is PlayerNetwork player)
             {
                 if (!player.IsAlive.Value) continue;
                 
@@ -60,22 +62,18 @@ public class PlayerCombat : NetworkBehaviour
     }
 
     [ServerRpc(RequireOwnership = false)]
-    private void DealDamageServerRpc(ulong targetObjectId, int damage, ServerRpcParams rpcParams = default)
+    private void DealDamageServerRpc(PlayerNetwork targetPlayer, int damage, NetworkConnection senderConnection = null)
     {
         if (!_playerNetwork.IsAlive.Value) return;
+
+        if (targetPlayer == null) return;
+
+        if (targetPlayer == _playerNetwork) return;
+        if (!targetPlayer.IsAlive.Value) return;
+
+        int nextHp = Mathf.Max(0, targetPlayer.HP.Value - damage);
+        targetPlayer.HP.Value = nextHp;
         
-        if (!NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(targetObjectId, out NetworkObject targetObject))
-            return;
-
-        if (targetObject.TryGetComponent<PlayerNetwork>(out var targetPlayer))
-        {
-            if (targetPlayer == _playerNetwork) return;
-            if (!targetPlayer.IsAlive.Value) return;
-
-            int nextHp = Mathf.Max(0, targetPlayer.HP.Value - damage);
-            targetPlayer.HP.Value = nextHp;
-            
-            Debug.Log($"{OwnerClientId} нанес {damage} урона {targetPlayer.Nickname.Value} (HP: {nextHp})");
-        }
+        Debug.Log($"Атакующий клиент нанес {damage} урона {targetPlayer.Nickname} (HP: {nextHp})");
     }
 }

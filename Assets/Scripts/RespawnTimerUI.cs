@@ -1,6 +1,5 @@
 using System.Collections;
 using TMPro;
-using Unity.Netcode;
 using UnityEngine;
 
 public class RespawnTimerUI : MonoBehaviour
@@ -18,34 +17,36 @@ public class RespawnTimerUI : MonoBehaviour
 
     private IEnumerator WaitForLocalPlayer()
     {
-        while (NetworkManager.Singleton == null ||
-               NetworkManager.Singleton.LocalClient == null ||
-               NetworkManager.Singleton.LocalClient.PlayerObject == null)
+        yield return new WaitForSeconds(3f);
+        
+        PlayerNetwork[] players = FindObjectsOfType<PlayerNetwork>();
+        if (players.Length > 0)
         {
-            yield return null;
+            _playerNetwork = players[0];
+            Debug.Log($"RespawnTimerUI: Найден игрок {_playerNetwork.name}");
         }
-
-        _playerNetwork = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<PlayerNetwork>();
-
-        if (_playerNetwork != null)
+        else
         {
-            _playerNetwork.IsAlive.OnValueChanged += OnIsAliveChanged;
-            OnIsAliveChanged(true, _playerNetwork.IsAlive.Value);
+            Debug.LogWarning("RespawnTimerUI: Игроки не найдены!");
+        }
+    }
+
+    private void Update()
+    {
+        if (_playerNetwork != null && _playerNetwork.IsAlive.Value)
+        {
+            HidePanel();
+        }
+        else if (_playerNetwork != null)
+        {
+            ShowPanel();
         }
     }
 
     private void OnDestroy()
     {
-        if (_playerNetwork != null)
-            _playerNetwork.IsAlive.OnValueChanged -= OnIsAliveChanged;
-    }
-
-    private void OnIsAliveChanged(bool previous, bool current)
-    {
-        if (current)
-            HidePanel();
-        else
-            ShowPanel();
+        if (_timerCoroutine != null)
+            StopCoroutine(_timerCoroutine);
     }
 
     private void ShowPanel()
