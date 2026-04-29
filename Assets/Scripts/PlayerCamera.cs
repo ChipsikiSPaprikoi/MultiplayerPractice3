@@ -10,18 +10,16 @@ public class PlayerCamera : NetworkBehaviour
 
     private void Start()
     {
-        if (base.Owner != null && base.Owner.IsLocalClient)
-        {
-            _cam = Camera.main;
-            Debug.Log($"{gameObject.name}: Camera enabled for owner");
-        }
+        _cam = Camera.main;
     }
 
     private void LateUpdate()
     {
-        if (_cam == null || base.Owner == null || !base.Owner.IsLocalClient) return;
+        bool isLocal = base.Owner != null && base.Owner.IsLocalClient;
+    
+        if (!isLocal || _cam == null) return;
     
         _cam.transform.position = transform.position + _offset;
-        _cam.transform.LookAt(transform.position + Vector3.up * 1.5f);
+        _cam.transform.LookAt(transform.position);
     }
 }

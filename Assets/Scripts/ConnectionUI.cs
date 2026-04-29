@@ -1,5 +1,5 @@
-using TMPro;
 using FishNet.Managing;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,55 +10,38 @@ public class ConnectionUI : MonoBehaviour
     [SerializeField] private Button _clientButton;
     [SerializeField] private GameObject _uiPanel;
     [SerializeField] private NetworkManager _networkManager;
+    
+    public string PlayerNickname = "Player";
 
-    public static string PlayerNickname { get; private set; } = "Player";
-
-    private void Awake() 
+    private void Awake()
     {
-        if (_hostButton != null)
-            _hostButton.onClick.AddListener(StartAsHost);
-        
-        if (_clientButton != null)
-            _clientButton.onClick.AddListener(StartAsClient);
+        _hostButton.onClick.AddListener(() => StartConnection(true));
+        _clientButton.onClick.AddListener(() => StartConnection(false));
     }
 
-    public void StartAsHost()
+    public void StartConnection(bool asHost)
     {
         SaveNickname();
-        StartServer();
-        _networkManager.ClientManager.StartConnection();
-        HideUI();
-    }
 
-    public void StartAsClient()
-    {
-        SaveNickname();
-        _networkManager.ClientManager.StartConnection();
-        HideUI();
-    }
+        if (asHost)
+        {
+            _networkManager.ServerManager.StartConnection();
+            _networkManager.ClientManager.StartConnection();
+        }
+        else
+        {
+            _networkManager.ClientManager.StartConnection();
+        }
 
-    private void StartServer()
-    {
-        _networkManager.ServerManager.StartConnection();
+        HideUI();
     }
 
     private void SaveNickname()
     {
-        string rawValue = _nicknameInput != null ? _nicknameInput.text : string.Empty;
-        PlayerNickname = string.IsNullOrWhiteSpace(rawValue) ? "Player" : rawValue.Trim();
+        PlayerNickname = string.IsNullOrWhiteSpace(_nicknameInput.text)
+            ? "Player" : _nicknameInput.text.Trim();
+        Debug.Log($"ConnectionUI: PlayerNickname установлен как '{PlayerNickname}'");
     }
 
-    private void HideUI()
-    {
-        if (_uiPanel != null)
-            _uiPanel.SetActive(false);
-    }
-
-    private void OnDestroy()
-    {
-        if (_hostButton != null)
-            _hostButton.onClick.RemoveListener(StartAsHost);
-        if (_clientButton != null)
-            _clientButton.onClick.RemoveListener(StartAsClient);
-    }
+    private void HideUI() => _uiPanel.SetActive(false);
 }

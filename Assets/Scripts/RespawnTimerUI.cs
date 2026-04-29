@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using TMPro;
 using UnityEngine;
@@ -7,37 +8,48 @@ public class RespawnTimerUI : MonoBehaviour
     [SerializeField] private GameObject _respawnPanel;
     [SerializeField] private TMP_Text _timerText;
 
-    private PlayerNetwork _playerNetwork;
+    private PlayerNetwork _localPlayer;
     private Coroutine _timerCoroutine;
 
     private void Start()
     {
-        StartCoroutine(WaitForLocalPlayer());
+        StartCoroutine(FindLocalPlayer());
     }
 
-    private IEnumerator WaitForLocalPlayer()
+    private IEnumerator FindLocalPlayer()
     {
-        yield return new WaitForSeconds(3f);
-        
-        PlayerNetwork[] players = FindObjectsOfType<PlayerNetwork>();
-        if (players.Length > 0)
+        yield return new WaitForEndOfFrame();
+
+        while (_localPlayer == null)
         {
-            _playerNetwork = players[0];
-            Debug.Log($"RespawnTimerUI: Найден игрок {_playerNetwork.name}");
-        }
-        else
-        {
-            Debug.LogWarning("RespawnTimerUI: Игроки не найдены!");
+            PlayerNetwork[] players = FindObjectsOfType<PlayerNetwork>();
+            foreach (var p in players)
+            {
+                if (p.Owner != null && p.Owner.IsLocalClient)
+                {
+                    _localPlayer = p;
+                    _localPlayer.IsAlive.OnChange += OnIsAliveChanged;
+                    Debug.Log($"RespawnTimerUI: привязан к {_localPlayer.name} (IsAlive={_localPlayer.IsAlive.Value})");
+                    break;
+                }
+            }
+
+            if (_localPlayer == null)
+            {
+                yield return null;
+            }
         }
     }
 
-    private void Update()
+    private void OnIsAliveChanged(bool prev, bool next, bool asServer)
     {
-        if (_playerNetwork != null && _playerNetwork.IsAlive.Value)
+        Debug.Log($"RespawnTimerUI: OnIsAliveChanged {prev} → {next}, AsServer={asServer}, для {_localPlayer?.Nickname.Value}");
+
+        if (next)
         {
             HidePanel();
         }
-        else if (_playerNetwork != null)
+        else
         {
             ShowPanel();
         }
@@ -45,14 +57,24 @@ public class RespawnTimerUI : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (_localPlayer != null)
+        {
+            _localPlayer.IsAlive.OnChange -= OnIsAliveChanged;
+        }
+
         if (_timerCoroutine != null)
+        {
             StopCoroutine(_timerCoroutine);
+            _timerCoroutine = null;
+        }
     }
 
     private void ShowPanel()
     {
-        if (_respawnPanel != null)
-            _respawnPanel.SetActive(true);
+        Debug.Log("RespawnTimerUI: ShowPanel вызван");
+        if (_respawnPanel == null) return;
+
+        _respawnPanel.SetActive(true);
 
         if (_timerCoroutine != null)
             StopCoroutine(_timerCoroutine);
@@ -62,6 +84,7 @@ public class RespawnTimerUI : MonoBehaviour
 
     private void HidePanel()
     {
+        Debug.Log("RespawnTimerUI: HidePanel вызван");
         if (_timerCoroutine != null)
         {
             StopCoroutine(_timerCoroutine);
@@ -77,6 +100,7 @@ public class RespawnTimerUI : MonoBehaviour
 
     private IEnumerator TimerRoutine()
     {
+        Debug.Log("RespawnTimerUI: запущен TimerRoutine");
         float timeLeft = 5f;
 
         while (timeLeft > 0f)
@@ -87,5 +111,7 @@ public class RespawnTimerUI : MonoBehaviour
             timeLeft -= Time.deltaTime;
             yield return null;
         }
+
+        Debug.Log("RespawnTimerUI: TimerRoutine завершён");
     }
 }

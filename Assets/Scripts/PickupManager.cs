@@ -16,7 +16,6 @@ public class PickupManager : NetworkBehaviour
         base.OnStartServer();
         _initialized = true;
         SpawnAll();
-        Debug.Log("PickupManager initialized & spawned!");
     }
 
     private void SpawnAll()
@@ -44,6 +43,5 @@ public class PickupManager : NetworkBehaviour
         var pickup = go.GetComponent<HealthPickup>();
         if (pickup != null) pickup.Init(this);
         ServerManager.Spawn(go);
-        Debug.Log($"Аптечка заспавнена: {position}");
     }
 }

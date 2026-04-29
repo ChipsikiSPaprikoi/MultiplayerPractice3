@@ -19,7 +19,7 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Update()
     {
-        if (!base.IsOwner || !_playerNetwork.IsAlive.Value) return;
+        if (!base.Owner.IsLocalClient || !_playerNetwork.IsAlive.Value) return;
         
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
@@ -29,12 +29,10 @@ public class PlayerCombat : NetworkBehaviour
 
     private void TryAttack()
     {
-        if (!base.IsOwner || _playerNetwork == null || !_playerNetwork.IsAlive.Value) return;
-        
         PlayerNetwork target = GetNearestEnemy();
-        if (target != null && target != _playerNetwork)
+        if (target != null && target != _playerNetwork && target.IsAlive.Value)
         {
-            DealDamageServerRpc(target, _damage);
+            target.TakeDamageServerRpc(_damage);
         }
     }
 
@@ -73,7 +71,5 @@ public class PlayerCombat : NetworkBehaviour
 
         int nextHp = Mathf.Max(0, targetPlayer.HP.Value - damage);
         targetPlayer.HP.Value = nextHp;
-        
-        Debug.Log($"Атакующий клиент нанес {damage} урона {targetPlayer.Nickname} (HP: {nextHp})");
     }
 }

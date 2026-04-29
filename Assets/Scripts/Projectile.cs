@@ -1,5 +1,6 @@
 using FishNet.Object;
 using UnityEngine;
+using FishNet.Connection;
 
 public class Projectile : NetworkBehaviour
 {
@@ -7,11 +8,16 @@ public class Projectile : NetworkBehaviour
     [SerializeField] private float _lifetime = 5f;
 
     private float _spawnTime;
+    private NetworkConnection _owner;
+
+    public void SetOwner(NetworkConnection owner)
+    {
+        _owner = owner;
+    }
 
     public override void OnStartNetwork()
     {
         _spawnTime = Time.time;
-        Debug.Log("[Projectile] Spawned");
     }
 
     private void Update()
@@ -27,7 +33,7 @@ public class Projectile : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!base.IsServerInitialized || !base.IsSpawned) return;
+        if (!base.IsServerInitialized) return;
         
         if (other.CompareTag("Wall") || other.CompareTag("Ground"))
         {
@@ -36,14 +42,13 @@ public class Projectile : NetworkBehaviour
         }
 
         var target = other.GetComponent<PlayerNetwork>();
-        if (target == null) return;
+        if (target == null || !target.IsAlive.Value) return;
         
-        if (Vector3.Distance(transform.position, target.transform.position) < 2f) return;
-
-        int newHp = Mathf.Max(0, target.HP.Value - _damage);
-        target.HP.Value = newHp;
+        if (_owner == target.Owner)
+            return;
+        
         target.TakeDamageServerRpc(_damage);
-
+    
         ServerManager.Despawn(gameObject);
     }
 }

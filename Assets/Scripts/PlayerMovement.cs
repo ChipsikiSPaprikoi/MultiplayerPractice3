@@ -9,13 +9,18 @@ public class PlayerMovement : NetworkBehaviour
     [SerializeField] private float _gravity = -9.81f;
 
     private CharacterController _cc;
+    private PlayerNetwork _playerNetwork;
     private float _verticalVelocity;
 
-    private void Awake() => _cc = GetComponent<CharacterController>();
+    private void Awake()
+    {
+        _cc = GetComponent<CharacterController>();
+        _playerNetwork = GetComponent<PlayerNetwork>();
+    }
 
     private void Update()
     {
-        if (!base.Owner.IsLocalClient || !GetComponent<PlayerNetwork>().IsAlive.Value) return;
+        if (!base.Owner.IsLocalClient || _playerNetwork == null || !_playerNetwork.IsAlive.Value) return;
 
         float h = Input.GetAxis("Horizontal");
         float v = Input.GetAxis("Vertical");
@@ -26,9 +31,7 @@ public class PlayerMovement : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     private void MoveServerRpc(float h, float v)
     {
-        var playerNetwork = GetComponent<PlayerNetwork>();
-        if (playerNetwork == null) return;
-        if (!playerNetwork.IsAlive.Value) return;
+        if (_playerNetwork == null || !_playerNetwork.IsAlive.Value) return;
         if (!_cc.enabled) return;
 
         Vector3 move = new Vector3(h, 0f, v).normalized * _speed;

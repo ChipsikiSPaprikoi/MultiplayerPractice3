@@ -29,7 +29,7 @@ public class PlayerView : NetworkBehaviour
     private void UpdateAllUI()
     {
         if (_nicknameText != null)
-            _nicknameText.text = _playerNetwork.Nickname.Value.ToString();
+            _nicknameText.text = _playerNetwork.Nickname.Value;
     
         if (_hpText != null)
             _hpText.text = $"HP: {_playerNetwork.HP.Value}";

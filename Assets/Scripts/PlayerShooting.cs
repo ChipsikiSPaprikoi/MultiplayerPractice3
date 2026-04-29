@@ -42,9 +42,7 @@ public class PlayerShooting : NetworkBehaviour
     private void ShootServerRpc(Vector3 pos, Vector3 dir, NetworkConnection senderConnection = null)
     {
         if (!_playerNetwork.IsAlive.Value || _playerNetwork.HP.Value <= 0) return;
-        
         if (CurrentAmmo.Value <= 0) return;
-        
         if (Time.time < _lastShotTime + _cooldown) return;
 
         _lastShotTime = Time.time;
@@ -52,9 +50,13 @@ public class PlayerShooting : NetworkBehaviour
 
         var go = Instantiate(_projectilePrefab, pos + dir * 1.2f, Quaternion.LookRotation(dir));
         ServerManager.Spawn(go, senderConnection);
-        
+
         var rb = go.GetComponent<Rigidbody>();
         if (rb != null)
-            rb.AddForce(dir * 25f, ForceMode.Impulse);
+            rb.AddForce(dir * 40f, ForceMode.Impulse);
+        
+        var proj = go.GetComponent<Projectile>();
+        if (proj != null)
+            proj.SetOwner(base.Owner);
     }
 }
