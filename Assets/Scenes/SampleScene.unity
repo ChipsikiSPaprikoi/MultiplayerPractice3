@@ -2278,6 +2278,7 @@ MonoBehaviour:
   _clientButton: {fileID: 1731061709}
   _uiPanel: {fileID: 1037737596}
   _networkManager: {fileID: 2051911566}
+  PlayerNickname: Player
 --- !u!114 &1137810930
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3662,6 +3663,8 @@ GameObject:
   - component: {fileID: 2051911566}
   - component: {fileID: 2051911565}
   - component: {fileID: 2051911567}
+  - component: {fileID: 2051911568}
+  - component: {fileID: 2051911569}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -3702,7 +3705,7 @@ MonoBehaviour:
   _ipv4BindAddress: 
   _enableIpv6: 1
   _ipv6BindAddress: 
-  _port: 7770
+  _port: 7771
   _maximumClients: 4095
   _clientAddress: localhost
 --- !u!114 &2051911566
@@ -3739,6 +3742,44 @@ MonoBehaviour:
   _playerPrefab: {fileID: 1332282113088791150, guid: e415a5624b3f19a46a6cb5e94e28e0c3, type: 3}
   _addToDefaultScene: 1
   Spawns: []
+--- !u!114 &2051911568
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2051911561}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e08bb003fce297d4086cf8cba5aa459a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Managing.Predicting.PredictionManager
+  _reduceReconcilesWithFramerate: 1
+  _minimumClientReconcileFramerate: 50
+  _createLocalStates: 1
+  _stateInterpolation: 3
+  _stateOrder: 0
+  _dropExcessiveReplicates: 1
+  _maximumServerReplicates: 15
+--- !u!114 &2051911569
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2051911561}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3fdaae44044276a49a52229c1597e33b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Managing.Timing.TimeManager
+  _updateOrder: 0
+  _timingType: 0
+  _allowTickDropping: 1
+  _maximumFrameTicks: 3
+  _tickRate: 60
+  _pingInterval: 1
+  _physicsMode: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

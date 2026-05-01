@@ -64,33 +64,7 @@ public class PlayerNetwork : NetworkBehaviour
     private void OnHPChanged(int previous, int current)
     {
         Debug.Log($"HP: {previous} → {current}");
-
-        if (base.IsServerInitialized && current <= 0 && IsAlive.Value)
-        {
-            IsAlive.Value = false;
-            StartCoroutine(RespawnRoutine());
-        }
-    }
-
-    private IEnumerator RespawnRoutine()
-    {
-        yield return new WaitForSeconds(5f);
-
-        Vector3 respawnPos;
-        if (_spawnPositions.Length > 0)
-        {
-            int idx = Random.Range(0, _spawnPositions.Length);
-            respawnPos = _spawnPositions[idx];
-        }
-        else
-        {
-            respawnPos = new Vector3(base.Owner.ClientId * PlayerSpacing, 1f, 0f);
-            Debug.LogWarning("Нет spawnPositions! Fallback по ClientId.");
-        }
-
-        transform.position = respawnPos;
-        HP.Value = 100;
-        IsAlive.Value = true;
+        
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -103,7 +77,7 @@ public class PlayerNetwork : NetworkBehaviour
             Vector3 startPos = _spawnPositions.Length > 0
                 ? _spawnPositions[(int)(base.Owner?.ClientId ?? 0) % _spawnPositions.Length]
                 : new Vector3((base.Owner?.ClientId ?? 0) * PlayerSpacing, 1f, 0f);
-            transform.position = startPos;
+            //transform.position = startPos;
         }
 
         string safeNickname = string.IsNullOrWhiteSpace(nickname)
@@ -164,6 +138,7 @@ public class PlayerNetwork : NetworkBehaviour
         transform.position = _spawnPositions[Random.Range(0, _spawnPositions.Length)];
         HP.Value = 100;
         IsAlive.Value = true;
+        UpdateVisualObserversRpc(true);
         
         MeshRenderer renderer = GetComponent<MeshRenderer>();
         if (renderer != null)
@@ -172,8 +147,6 @@ public class PlayerNetwork : NetworkBehaviour
         CharacterController controller = GetComponent<CharacterController>();
         if (controller != null)
             controller.enabled = true;
-        
-        UpdateVisualObserversRpc(true);
 
         PlayerShooting shooting = GetComponent<PlayerShooting>();
         if (shooting != null)
@@ -182,15 +155,14 @@ public class PlayerNetwork : NetworkBehaviour
         }
     }
     
-    [ObserversRpc]
+    [ObserversRpc(BufferLast = true)]
     public void UpdateVisualObserversRpc(bool isAlive)
     {
-        MeshRenderer renderer = GetComponent<MeshRenderer>();
+        Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+            renderers[i].enabled = isAlive;
+
         CharacterController controller = GetComponent<CharacterController>();
-
-        if (renderer != null)
-            renderer.enabled = isAlive;
-
         if (controller != null)
             controller.enabled = isAlive;
     }
