@@ -393,6 +393,7 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 1332282113088791150}
   _speed: 5
   _gravity: -9.81
+  _playerNetwork: {fileID: 0}
 --- !u!114 &4182536753701976157
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -469,7 +470,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584239731459783788
+  _initializedTimestamp: -8584239689960040045
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
