@@ -26,28 +26,19 @@ public class PlayerNetwork : NetworkBehaviour
     {
         Debug.Log($"{name}: Network spawned (Owner={base.Owner?.ClientId}, IsServer={base.IsServerInitialized})");
     }
-
-    private void Start()
-    {
-        StartCoroutine(DelayedNicknameRpc());
-    }
+    
 
     private IEnumerator DelayedNicknameRpc()
     {
         yield return new WaitForSeconds(0.1f);
 
-        if (base.IsServerInitialized)
-        {
-            ConnectionUI conn = FindObjectOfType<ConnectionUI>();
-            string nick = conn != null ? conn.PlayerNickname : null;
+        if (!base.IsOwner)
+            yield break;
 
-            string safeNickname = string.IsNullOrWhiteSpace(nick)
-                ? $"Player_{base.Owner?.ClientId ?? 0}"
-                : nick.Trim().Substring(0, Mathf.Min(30, nick.Length));
+        ConnectionUI conn = FindObjectOfType<ConnectionUI>();
+        string nick = conn != null ? conn.PlayerNickname : null;
 
-            Debug.Log($"[Server] Setting nickname for {name}: '{safeNickname}'");
-            SetNicknameServerRpc(safeNickname);
-        }
+        SetNicknameServerRpc(nick);
     }
 
     public override void OnStopNetwork()
@@ -59,6 +50,9 @@ public class PlayerNetwork : NetworkBehaviour
     {
         base.OnStartClient();
         Debug.Log($"[Client] {name}, Owner={base.Owner?.ClientId}, IsLocalClient={base.Owner?.IsLocalClient}");
+
+        if (base.Owner != null && base.Owner.IsLocalClient)
+            StartCoroutine(DelayedNicknameRpc());
     }
 
     private void OnHPChanged(int previous, int current)
@@ -71,14 +65,6 @@ public class PlayerNetwork : NetworkBehaviour
     public void SetNicknameServerRpc(string nickname)
     {
         Debug.Log($"[ServerRpc] SetNicknameServerRpc: nickname='{nickname}' invoked for {name} (Owner={base.Owner?.ClientId})");
-
-        if (string.IsNullOrEmpty(Nickname.Value))
-        {
-            Vector3 startPos = _spawnPositions.Length > 0
-                ? _spawnPositions[(int)(base.Owner?.ClientId ?? 0) % _spawnPositions.Length]
-                : new Vector3((base.Owner?.ClientId ?? 0) * PlayerSpacing, 1f, 0f);
-            //transform.position = startPos;
-        }
 
         string safeNickname = string.IsNullOrWhiteSpace(nickname)
             ? $"Player_{base.Owner?.ClientId ?? 0}"

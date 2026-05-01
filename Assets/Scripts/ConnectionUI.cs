@@ -38,8 +38,10 @@ public class ConnectionUI : MonoBehaviour
 
     private void SaveNickname()
     {
-        PlayerNickname = string.IsNullOrWhiteSpace(_nicknameInput.text)
-            ? "Player" : _nicknameInput.text.Trim();
+        PlayerNickname = _nicknameInput.text != null
+            ? _nicknameInput.text.Trim()
+            : "";
+
         Debug.Log($"ConnectionUI: PlayerNickname установлен как '{PlayerNickname}'");
     }
 
